@@ -1,5 +1,15 @@
 # Next steps
 
+- Proper authentication and security controls
+- A deployed, online version where you can find and chat with friends and also people you don't know
+- A leaderboard of scores/rankings, etc
+- Real-time updates to complement the rest API, would be used for presence and chat
+- The way the history is visualized right now works, but it can be improved further
+- We can expand and allow abritrary board sizes since everything is backend driven,by just exposing a few things. This allows people to have larger boards or change the conditions if they want to play more competetive
+- Different color themes for readability/accessebility or even just fun
+
+The AI version with more information of these ideas is below:
+
 The current release supports persistent, shared play: one profile controls both
 colors. These are future improvements, in proposed product priority order.
 Authentication and security controls are prerequisites for opening online play

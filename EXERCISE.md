@@ -272,3 +272,30 @@ submissions to your application, and your Zoom recording is attached to your app
 automatically.
 
 Questions? Reply to the email we sent you.
+
+## Stage 1 ##
+Just some notes about stage 1:
+- The frontend app was not in any usable state, I ran out of time working on the backend. My environment was not fully setup for python, so I had a lot of minor mishaps along the way which prevented me from adequately running/testing the code I was writing until about 3/4 of the way through the time
+- If I had more time, I could have
+  - BE:
+    - Broken down responsibilities more for the different parts of the backend, validating requests, serializing/deserializing the object, a better structured response with more fields, more unit test coverage
+  - A system like this should not be client authoratative, but server authoratative. Instead of just processing the move and also guessing who's turn it is, we can have a more structured schema with all of the game data living there
+    - Allow for multiple games to be played by a given user
+    - See the history and overview of all the moves played and in what order
+  - Add DB persistence and also leverage redis where needed
+  - FE:
+    - Add styled components and setup a theme/easy to change user interface
+    - Add the ability to "log in", simple auth for now nothing fancy just a name that games can live behind, just to show what the flow would look like if we supported real auth and multiple games being played
+    - Move things out of App.tsx into components, hooks, styles, queries, etc
+    - Separate api client, models (serialization/deserialization), authorization
+
+## Stage 2 ##
+In this stage, I changed the following things:
+    - The ability to view and edit/delete your games
+    - The ability to view all moves relevant to a given game
+    - The ability to see stats on your profile
+    - A simple tutorial the first time you play
+    - A mobile responsive experience with native feeling tabs
+    - A fully server authoratative implementation
+
+
