@@ -22,3 +22,10 @@ coverage/
 # Local environment
 .env
 .env.*
+
+# Local game database
+backend/data/
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm

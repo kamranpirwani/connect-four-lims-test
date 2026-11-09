@@ -1,17 +1,37 @@
 [project]
-name = "backend"
-version = "0.1.0"
-description = "Add your description here"
+name = "connect-four-backend"
+version = "0.2.0"
+description = "Persistent, server-authoritative Connect Four API"
 readme = "README.md"
-authors = [
-    { name = "Kamran Pirwani", email = "kamranp619@gmail.com" }
+requires-python = ">=3.15,<3.16"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "pydantic>=2.11,<3",
+    "sqlalchemy>=2.0,<3",
+    "uvicorn[standard]>=0.32,<1",
 ]
-requires-python = ">=2.7.18"
-dependencies = []
 
-[project.scripts]
-backend = "backend:main"
+[project.optional-dependencies]
+test = [
+    "pytest>=8,<10",
+    "ruff>=0.11,<1",
+    "httpx2>=2.16.0",
+]
 
 [build-system]
-requires = ["uv_build>=0.13.7,<0.14.0"]
+requires = ["uv_build>=0.13.7,<0.14"]
 build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "backend"
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "src/backend/test_main.py"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py315"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]

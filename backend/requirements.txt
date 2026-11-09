@@ -1,4 +1,2 @@
-fastapi>=0.115
-uvicorn[standard]>=0.32
-pytest>=8
-httpx2
+# Dependencies are defined once in pyproject.toml. Includes test tools.
+-e .[test]

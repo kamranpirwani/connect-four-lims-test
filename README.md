@@ -1,274 +1,163 @@
-# Connect Four take-home
+# Connect Four
 
-Thank you for taking the Confident LIMS engineering exercise. You will build a small
-Connect Four game:
+Pick a name, drop a chip, and come back to the same board.
 
-1. **Stage 1 (2 hours at most):** a basic React frontend and a basic Python backend with only
-   one endpoint, written by hand with no AI.
-2. **Stage 2 (about 1 hour suggested):** improve your project with an AI coding agent of your choice,
-   and write down what you would do next with more time.
+A persistent, server-authoritative Connect Four game built with React and
+FastAPI. Play both colors on one screen, learn as you go, and revisit every
+saved game from desktop or mobile.
 
-**Time.** Stage 1 has a limit of **2 hours** and no minimum: stop early if you're done. It
-runs from when you click **Start my Stage 1 time** in our form to when you submit your Stage 1
-commit later in the same form, including setup and any breaks, so plan to do it in one
-sitting. When you reach 2 hours, commit, tag and submit what you have, even if it's
-unfinished. Stage 2 runs from your
-Stage 1 submission to your Stage 2 submission; it has no minimum or maximum, and we suggest
-about an hour.
+- **Straight into play.** New profiles start with a fresh board; returning
+  profiles resume their last game, including after a browser refresh.
+- **Learn by playing.** A short, interactive first-play guide explains gravity,
+  alternating turns, and how to win.
+- **See every move.** Select a history entry to highlight its chip. Completed
+  games stay available to review, with a clear action to play again.
+- **Made for both screens.** Desktop navigation and mobile bottom tabs offer
+  Play, Games, and Profile. Mobile move history opens in a sheet when needed.
+- **Keep your history.** Browse open and finished games, delete games you no
+  longer want, and see games played, total moves, draws, and Blue/Red results.
+- **The server makes the call.** The backend validates every move, applies
+  gravity, and persists the resulting board and history together.
 
-**What we value.** We prefer a small amount of excellent work to a large amount of rough
-work. Work that is bug-free, thoughtful, clean and tested scores higher than extra features.
+## See it in action
 
-**Who grades it.** People review and grade your work. We also use AI to scan your code for
-security risks and to write review notes that our reviewers read alongside your code; it never
-sets your score.
+These recordings show the running app with demo profiles and real moves.
+The current game supports shared play on one screen; online opponents and chat
+are planned improvements.
 
-Our email to you contains **your personal Zoom link**, used to record Stage 1, and the link
-to our **form**. You go through the form once, from start to finish: clicking **Start my
-Stage 1 time** shows you this page, and later steps in the same form are where you submit
-your Stage 1 commit and then your Stage 2 commit. Keep the form open in a browser tab (if you
-close it, reopen the link in the same browser to continue where you left off), and please
-don't share your Zoom link.
+### Desktop
 
-## Setup (about 10 minutes)
+Start a game, follow the guide, connect four, inspect a move, and browse your
+profile and saved games.
 
-1. Click **Use this template** at the top of this page and create a **private** repo in your
-   own GitHub account. Keep `connect-four` in the repo name (for example `connect-four`):
-   our grading account accepts invitations only to repos named that way.
-2. Invite our reviewers **@salbarran**, **@KN3LL2K**, **@eatpie75** and **@JosephChou124**,
-   and our grading account **@confident-interview-bot**, as collaborators
-   (**Settings → Collaborators → Add people**). GitHub gives collaborators on a personal repo
-   write access; we only read your code and never push to it.
-3. Clone your repo and check that both apps run (commands below). Keep these install, run
-   and test commands working: we use them to run and test your code.
-4. Install the free [Zoom desktop app](https://zoom.us/download) if you don't have it. You
-   don't need a Zoom account. Use the app rather than joining from a web browser: screen
-   sharing is more reliable there. On a Mac, the first time you share, macOS asks you to
-   allow Zoom under **System Settings → Privacy & Security → Screen & System Audio
-   Recording**; turn it on and restart Zoom.
+![Desktop demo: first-play guide, a winning game, move inspection, profile statistics, and saved games](docs/demos/desktop.gif)
 
-You need [Node.js](https://nodejs.org/) 20 or newer and [Python](https://www.python.org/) 3.10
-or newer.
+### Mobile
 
-| Folder | Install | Run | Test |
-|---|---|---|---|
-| `frontend/` | `npm install` | `npm run dev` (http://localhost:5173) | `npm test` |
-| `backend/` | `pip install -r requirements.txt` | `uvicorn main:app --port 8080` | `pytest` |
+The same game with bottom navigation, an on-demand move-history sheet, and
+dedicated Games and Profile views.
 
-We suggest a virtual environment for the backend:
+<img src="docs/demos/mobile.gif" alt="Mobile demo: guided play, a win, move-history sheet, chip highlighting, games, and profile statistics" width="390">
 
-```bash
+Both GIFs are stored in [docs/demos](docs/demos/README.md), so the README does
+not depend on an external media host.
+
+## Run locally
+
+Use **Python 3.15.2** and **Node.js 24.15+ (24.x) or 26+**. Python is pinned in
+the backend's version files; Node 24.15.0 is recorded in the frontend's version
+files. The commands below run from the repository root.
+
+Start the backend in one terminal:
+
+```sh
 cd backend
-python3 -m venv .venv
-source .venv/bin/activate      # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn main:app --port 8080
+uv sync --extra test
+uv run uvicorn main:app --port 8080
 ```
 
-The frontend dev server forwards requests for `/evaluate_board_state` to
-`http://localhost:8080`, so the browser can call the backend without any CORS setup. Call it
-with a relative URL, for example `fetch("/evaluate_board_state", ...)`.
+`uv` creates the project-local `.venv` and downloads the pinned Python
+interpreter if needed. No global Python or version-manager changes are required.
+`uv.lock` records the tested dependency versions.
 
-## Rules
+Start the frontend in another terminal:
 
-- **Stage 1 must be your own code, with no AI and no help from other people.** Do not use AI
-  assistants, AI code completion or AI chat, and don't ask anyone for help. To be safe, turn
-  off AI features in your code editor and your browser before you start. You may search the
-  web and read documentation (for example the React, FastAPI or MDN docs), but skip any
-  AI-generated answers, such as AI summaries at the top of search results.
-- **Record all of Stage 1 on your personal Zoom link.** The recording is how you show that
-  you wrote Stage 1 without AI. Recording starts on its own as soon as you join, so get your
-  desktop ready first: close anything private and open what you'll need. Then join the link
-  and share your **entire screen** (not a single window): click **Share** (the green
-  **up-arrow ↑** button) in the toolbar at the bottom of the Zoom window, choose your whole
-  screen (shown as **Screen** or **Desktop**), then click **Share**. Recording starts
-  automatically and is saved to our account; there is nothing to upload. You don't need to turn
-  on your camera or microphone. To take a break, leave the meeting and rejoin the same link
-  (your Stage 1 time keeps running). End Stage 1 by running `git log --oneline -3` on
-  screen (see *Commits and tags*), then leave the meeting and submit your Stage 1 commit in the
-  form right away. You don't need to record Stage 2.
-- **Stage 1 is limited to 2 hours**, from **Start my Stage 1 time** to your Stage 1 submission.
-  Breaks count. At 2 hours, stop, make your final commit and tag (see *Commits and tags*) and
-  submit, even if the game is unfinished.
-- **Commit as you go**, at least every 30 minutes, and push to your repo.
-- At the technical interview you'll walk us through your Stage 1 code and make a small change
-  to it without AI.
-- In Stage 2, use any AI tool with your own account. Do not connect it to any employer or
-  company systems, repos or data.
-- Keep your repo private.
-
-## Commits and tags
-
-Your git history tells us which code is hand-coded and which is AI-assisted, so please follow
-these steps exactly:
-
-1. Start every Stage 1 commit message with `stage1:`.
-2. When Stage 1 is done, make your final hand-coded commit, tag it and push:
-
-   ```bash
-   git add .
-   git commit --allow-empty -m "stage1: FINAL hand-coded submission"
-   git tag stage1-final
-   git push origin main stage1-final
-   git log --oneline -3   # show this on the Zoom recording, then leave the meeting
-   ```
-
-   Then go back to the form and submit the commit right away (**Submit my Stage 1 commit**).
-   This ends your Stage 1 time and starts Stage 2.
-
-3. Start every Stage 2 commit message with `stage2:`, and when you are done:
-
-   ```bash
-   git tag stage2-final
-   git push origin main stage2-final
-   ```
-
-   Then submit the commit in the form right away (**Submit my Stage 2 commit**). This finishes
-   the form.
-
-We compare each submission with your commit and tag push times on GitHub, so submit within a
-few minutes of pushing.
-
-Do not rewrite history after tagging `stage1-final` (no rebase, amend or force-push).
-
-## Stage 1: Connect Four (hand-coded, no AI)
-
-Build a Connect Four game that you can play in the browser, with a React frontend in
-`frontend/` and a Python backend in `backend/`. If you aren't familiar with the game, see the
-[rules](http://mathworld.wolfram.com/Connect-Four.html) and this
-[video](https://www.youtube.com/watch?v=H3FYRM9a0i4).
-
-### Frontend
-
-- The board has 6 rows and 7 columns.
-- One person plays both colors on one screen: blue (player 1) and red (player 2). Blue always
-  goes first, and the players take turns.
-- A chip dropped in a column lands in the lowest open slot. A full column takes no more chips.
-- Chips need not be circular and the board need not be realistic, but use simple, intuitive
-  graphics.
-- **After every move, the frontend sends the board to the backend** and uses the response to
-  show whose turn it is, the winner and the winning chips, or a draw. Play stops when the game
-  is over. If the backend rejects the board, show the error.
-- No saved state is needed; losing the game on refresh is fine. You may use any libraries.
-
-### Backend
-
-A simple server in Python with a single API call that evaluates the board. No database is
-needed. Use port `8080`. We will run tests against your server.
-
-**POST** `/evaluate_board_state`
-
-It accepts a game state as JSON:
-
-- `0` is an empty slot
-- `1` is a blue piece (player 1)
-- `2` is a red piece (player 2)
-
-```json
-{
-    "board": [
-        [0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 2, 0, 0],
-        [0, 0, 0, 2, 1, 1, 0],
-        [0, 0, 0, 1, 1, 2, 0]
-    ]
-}
+```sh
+cd frontend
+npm install
+npm run dev
 ```
 
-The route handler should:
+Open [the game](http://localhost:5173). Vite forwards `/api` requests to
+the backend on port 8080. Interactive API documentation is available at
+[Swagger UI](http://localhost:8080/docs).
 
-- Validate the request body and return errors accordingly.
-- Evaluate the board: whether the game is in progress (and whose turn it is), won (by whom,
-  and which pieces form the win) or drawn, or whether the board is impossible under the rules.
+If port 8080 is already in use, run the backend on another port and start Vite
+with, for example, `API_PROXY_TARGET=http://localhost:8081 npm run dev`.
 
-You choose the response format.
+For Python without uv, see [backend setup](backend/README.md).
 
-Game rules:
+## Run tests and checks
 
-- Blue (player 1) always goes first.
-- A win occurs when at least 4 pieces of the same color appear in at least one horizontal row,
-  vertical column, or diagonal.
-- A draw occurs when the board is filled with pieces and there are no rows, columns or
-  diagonals with 4 or more consecutive pieces of the same color.
+Backend, from `backend/`:
 
-**Write the code as if you were opening a pull request for a colleague to review.** Add a
-short section to this README on how to run the app and its tests. Within the time available,
-favor a working game over an unfinished one.
+```sh
+uv run --extra test pytest
+uv run --extra test ruff check .
+uv run --extra test ruff format --check .
+```
 
-### What we look for
+Frontend, from `frontend/`:
 
-- [ ] a game that works without bugs
-- [ ] a clear, usable, and visually appealing UI
-- [ ] correct, robust board evaluation that handles edge cases
-- [ ] useful API responses
-- [ ] sensible structure, with game logic separate from request handling
-- [ ] clean, readable code
-- [ ] tests
+```sh
+npm test
+npm run build
+```
 
-## Stage 2: improve it with AI (about 1 hour suggested)
+After activating a Python environment installed with
+`python -m pip install -r requirements.txt`, plain `pytest` also works.
+Backend tests use temporary databases and never modify saved games.
 
-Use an AI coding agent of your choice to improve anything you like in your Stage 1 project.
-You decide what matters most.
+## How state works
 
-An hour is a guide, not a limit: spend more or less as you see fit. You don't need to do
-everything you can think of. Put whatever you would do with more time in your next-steps
-document instead.
+- The database owns every board, turn, result, and accepted move.
+- A move submits a **column**, an expected game version, and optionally a player.
+  The server chooses the lowest open row. Clients never replace saved boards.
+- Each accepted move and board update commit in one transaction. Competing or
+  stale requests receive a conflict response instead of overwriting state.
+- React Query owns profiles, game lists, and game details. Mutations cache the
+  complete server response; the UI does not optimistically place chips.
+- A shared fetch client handles cancellation, timeouts, errors, and Zod response
+  validation. Move mutations do not retry automatically. An uncertain response
+  triggers a fresh read before play can continue.
+- Local storage keeps only the active profile ID and last-opened game ID per
+  profile. Refreshing reloads actual state from the API.
+- Names are trimmed, internal whitespace is collapsed, and matching is
+  case-insensitive. Reusing a name resumes the same demo profile. This is not
+  authentication or access control.
 
-- Start every commit message with `stage2:` and tag your last commit `stage2-final`.
-- Save and commit the complete, unedited AI session transcripts in `ai-transcripts/` as
-  human-readable Markdown or text files (see *Exporting AI transcripts* below).
-- Add a few lines to this README under a **Stage 2** heading describing what you changed and
-  why.
-- Commit a `NEXT_STEPS.md` describing what you would do if you had more time (UI/UX
-  improvements, new features, bug fixes, infrastructure, etc.).
+SQLite data is stored at `backend/data/connect-four.sqlite3` and excluded from
+Git. It survives backend restarts. Set `DATABASE_URL` to a different
+`sqlite:///...` file URL to use another database.
 
-### What we look for
+## API
 
-- [ ] good choices about what to improve
-- [ ] work that is correct and verified
-- [ ] effective use of the AI agent (good context, reviewing and testing its output, and
-  catching its mistakes)
-- [ ] thoughtful and self-aware suggestions for further work if given more time
+| Method | Route | Purpose |
+|---|---|---|
+| POST | `/api/users` | Create or resume a profile by name |
+| GET | `/api/users/{user_id}` | Get a profile |
+| GET | `/api/users/{user_id}/games` | List its games, newest activity first |
+| POST | `/api/games` | Create a game for a user |
+| GET | `/api/games/{game_id}` | Get current state and ordered move history |
+| POST | `/api/games/{game_id}/moves` | Submit a column and expected version |
+| DELETE | `/api/games/{game_id}` | Permanently delete a game and its moves |
 
-### Exporting AI transcripts
+There are no reset or round resources. Playing again creates a new game.
+The original `POST /evaluate_board_state` remains a stateless compatibility
+utility for the exercise's board-evaluation tests. It validates external boards
+but cannot create or change saved games; the frontend does not use it.
 
-We read your transcripts, so they must be human-readable: Markdown (`.md`) or plain text
-(`.txt`), one file per session, numbered in order (for example `01-hover-preview.md`).
-Include every prompt and every response, in order, without editing. Only remove secrets
-such as API keys.
+See [backend documentation](backend/README.md) for request examples, response
+fields, errors, and code boundaries.
+See [frontend documentation](frontend/README.md) for component structure,
+automatic game selection, tutorial behavior, and state-management boundaries.
 
-Do not commit raw session logs (`.jsonl` or `.json` files, such as those under
-`~/.claude/projects/` or `~/.codex/sessions/`). We can't read them.
+## What comes next
 
-- **Claude Code:** run `/export` at the end of each session, choose to save it to a file,
-  and move the file into `ai-transcripts/`.
-- **Codex (CLI, IDE extension or app):** use its Markdown export if your version has one;
-  otherwise select the whole conversation, copy it and paste it into a Markdown file.
-- **Cursor:** use the chat's **Export chat** option to save it as Markdown.
-- **GitHub Copilot Chat (VS Code):** right-click in the chat and choose **Copy All**, then
-  paste into a Markdown file. (**Chat: Export Chat...** saves JSON, which we can't read.)
-- **Any other tool:** use its Markdown or text export, or copy and paste the full
-  conversation into a Markdown file.
+1. **Online play:** accounts, rooms, and a Blue/Red choice for each player.
+2. **Live updates:** WebSockets for moves, presence, and reconnecting to a game.
+3. **Chat:** a shared lobby and conversations with your opponent.
+4. **Production readiness:** encrypted connections, access controls, further
+   anti-cheat checks, migrations, and automated browser checks.
+5. **More ways to review:** move replay, refined accessibility, and personal
+   rankings once each player owns a side.
 
-Before you commit, open each file and check that you can read the conversation.
+See the [ordered improvement plan](NEXT_STEPS.md) for scope and dependencies.
 
-## Submit
+## Stage 2
 
-Both submissions are later steps in the form you started, not new forms. Keep it open, or
-reopen the link in the same browser to pick up where you left off:
-
-1. **Submit my Stage 1 commit**, right after you push `stage1-final`: your repo URL, the
-   `stage1-final` commit ID, and a statement that Stage 1 is your own work without AI.
-2. **Submit my Stage 2 commit**, right after you push `stage2-final`: the `stage2-final` commit
-   ID and any notes for us.
-
-To get a commit ID, run `git rev-parse 'stage1-final^{commit}'` (or `stage2-final`) and paste
-what it prints. The short ID from `git log --oneline` (for example `3f2c1ab`) works too.
-
-**Use the same email address you used in your job application.** We use it to match your
-submissions to your application, and your Zoom recording is attached to your application
-automatically.
-
-Questions? Reply to the email we sent you.
+Replaced client-owned gameplay with a persistent FastAPI/SQLAlchemy API while
+retaining the board model and the original evaluation endpoint. Completed the
+React UI using Styled Components, React Query, a shared fetch client, and Zod.
+Added domain, API, persistence, concurrency, rollback, client-recovery, and UI
+tests. Aligned Python settings and documented installation, startup, and tests.

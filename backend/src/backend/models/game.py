@@ -1,134 +1,170 @@
-from pydantic import BaseModel, Field
-from enum import IntEnum, Enum
+"""Connect Four rules, independent of HTTP and persistence."""
 
-ROWS, COLS = (6, 7)
-WIN_STREAK = 4
+from dataclasses import dataclass
+from enum import IntEnum, StrEnum
+from functools import lru_cache
+from typing import Literal
 
-class Move(BaseModel):
-    row: int = Field(ge=0, lt=ROWS)
-    col: int = Field(ge=0, lt=COLS)
+ROWS, COLS, WIN_STREAK = 6, 7, 4
+type Cell = Literal[0, 1, 2]
 
-class GameState(str, Enum):
-    not_started = 'not_started' 
-    in_progress = 'in_progress'
-    draw = 'draw'
-    complete = 'complete'
 
 class Player(IntEnum):
-    none = 0
     blue = 1
     red = 2
 
-class Board(BaseModel):
-    board: list[list[int]]
+    @property
+    def opponent(self) -> "Player":
+        return Player.red if self == Player.blue else Player.blue
 
-    def get_winner(self, next_player: Player) -> Player | None:
-        blue_won = self.is_game_over(Player.blue.value)
-        red_won = self.is_game_over(Player.red.value)
 
-        if blue_won and red_won:
-            raise ValueError("Only one player can win")
+class GameState(StrEnum):
+    not_started = "not_started"
+    in_progress = "in_progress"
+    complete = "complete"
+    draw = "draw"
 
-        if blue_won:
-            if next_player != Player.red.value:
-                raise ValueError("If blue won, must be reds turn now technically")
-            return Player.blue.value
-        if red_won:
-                    if next_player != Player.blue.value:
-                        raise ValueError("If red won, must be reds turn now technically")
-                    return Player.red.value
 
-        return None
+class InvalidBoard(ValueError):
+    pass
 
-    def is_game_over(self, player: Player) -> bool:
-        # horizontal
-        for row in range(ROWS):
-            for col in range(COLS - WIN_STREAK + 1):
-                if all(self.board[row][col + i] == player for i in range(WIN_STREAK)):
-                    return True
 
-        # vertical
-        for row in range(3):
-            for col in range(COLS):
-                if all(self.board[row + i][col] == player for i in range(WIN_STREAK)):
-                    return True
+class InvalidMove(ValueError):
+    pass
 
-        # diagonal
-        # down right
-        for row in range(3):
-            for col in range(4):
-                if all(self.board[row + i][col + i] == player for i in range(WIN_STREAK)):
-                    return True
-        # upright
-        for row in range(WIN_STREAK - 1, ROWS):
-                    for col in range(COLS - WIN_STREAK + 1):
-                        if all(self.board[row - i][col + i] == player for i in range(WIN_STREAK)):
-                            return True
 
-        return False
+@dataclass(frozen=True)
+class Position:
+    row: int
+    column: int
 
-    def validate_gravity(self) -> None:
-        # -1 here bec of bottom
+
+@dataclass(frozen=True)
+class Move:
+    row: int
+    column: int
+    player: Player
+
+
+@dataclass(frozen=True)
+class BoardStatus:
+    state: GameState
+    next_player: Player | None
+    winner: Player | None
+    winning_cells: tuple[Position, ...] = ()
+
+
+@dataclass(frozen=True)
+class Board:
+    board: tuple[tuple[Cell, ...], ...] = tuple(tuple(0 for _ in range(COLS)) for _ in range(ROWS))
+
+    def __post_init__(self) -> None:
+        if len(self.board) != ROWS or any(len(row) != COLS for row in self.board):
+            raise InvalidBoard("The board must have 6 rows and 7 columns.")
+        if any(
+            type(cell) is not int or cell not in (0, 1, 2) for row in self.board for cell in row
+        ):
+            raise InvalidBoard("Cells must be integers: 0, 1, or 2.")
         for row in range(ROWS - 1):
             for column in range(COLS):
-                cell = self.board[row][column]
-                under = self.board[row + 1][column]
+                if self.board[row][column] and not self.board[row + 1][column]:
+                    raise InvalidBoard("A chip cannot float above an empty cell.")
 
-                if cell != 0 and under == 0:
-                    raise ValueError("Chips have to be placed in their lowest possible position")
+    @classmethod
+    def from_rows(cls, rows: list[list[int]]) -> "Board":
+        return cls(tuple(tuple(row) for row in rows))
 
+    def to_rows(self) -> list[list[int]]:
+        return [list(row) for row in self.board]
 
-    def get_game_state(self, winner: Player | None) -> GameState: 
-        if winner is not None:
-            return GameState.complete
-        
-        has_started = False
-        is_full = True
-
+    def _winning_cells(self, player: Player) -> tuple[Position, ...]:
+        cells: set[tuple[int, int]] = set()
         for row in range(ROWS):
             for column in range(COLS):
-                cell = self.board[row][column]
-                if cell != Player.none.value:
-                    has_started = True
-                else:
-                    is_full = False
+                for dr, dc in ((0, 1), (1, 0), (1, 1), (-1, 1)):
+                    line = [(row + i * dr, column + i * dc) for i in range(WIN_STREAK)]
+                    if all(
+                        0 <= r < ROWS and 0 <= c < COLS and self.board[r][c] == player
+                        for r, c in line
+                    ):
+                        cells.update(line)
+        return tuple(Position(row, column) for row, column in sorted(cells))
 
-        if has_started is False:
-            return GameState.not_started
+    def get_status(self) -> BoardStatus:
+        blue = sum(cell == Player.blue for row in self.board for cell in row)
+        red = sum(cell == Player.red for row in self.board for cell in row)
+        if blue not in (red, red + 1):
+            raise InvalidBoard("Blue must go first, then players must alternate.")
+        next_player = Player.blue if blue == red else Player.red
+        blue_win, red_win = self._winning_cells(Player.blue), self._winning_cells(Player.red)
+        if blue_win and red_win:
+            raise InvalidBoard("Both players cannot win.")
+        winner = Player.blue if blue_win else Player.red if red_win else None
+        if winner:
+            if winner == next_player:
+                raise InvalidBoard("The winning player must have made the last move.")
+            return BoardStatus(GameState.complete, None, winner, blue_win or red_win)
+        if blue + red == ROWS * COLS:
+            return BoardStatus(GameState.draw, None, None)
+        state = GameState.in_progress if blue + red else GameState.not_started
+        return BoardStatus(state, next_player, None)
 
-        if is_full:
-            return GameState.draw
+    def drop(self, column: int, player: Player | None = None) -> tuple["Board", Move]:
+        if type(column) is not int or not 0 <= column < COLS:
+            raise InvalidMove("Choose a column from 0 to 6.")
+        status = self.get_status()
+        if status.next_player is None:
+            raise InvalidMove("This game is over. Create a new game to play again.")
+        if player is not None and player != status.next_player:
+            raise InvalidMove("It is the other player's turn.")
+        row = next((r for r in range(ROWS - 1, -1, -1) if self.board[r][column] == 0), None)
+        if row is None:
+            raise InvalidMove("That column is full. Choose another column.")
+        rows = self.to_rows()
+        rows[row][column] = int(status.next_player)
+        return Board.from_rows(rows), Move(row, column, status.next_player)
 
-        
-    def get_status(self) -> dict:
-        self.validate_gravity()
+    def validate_history(self) -> None:
+        """Reject unreachable external boards, including play after a win.
 
-        next_turn = self.get_next_players_turn()
-        winner = self.get_winner(next_turn)
-        state = self.get_game_state(winner)
+        Reverse top-of-column moves with memoized heights. For a win, first
+        remove a possible final chip that eliminates every winning line.
+        Saved games originate only from drop(), so don't need this search.
+        """
+        status = self.get_status()
+        columns = tuple(
+            tuple(self.board[r][c] for r in range(ROWS - 1, -1, -1) if self.board[r][c])
+            for c in range(COLS)
+        )
+        heights = tuple(len(column) for column in columns)
 
-        return {
-            "next_player": next_turn,
-            "state": state,
-            "winner": winner
-        }
+        @lru_cache(maxsize=None)
+        def reachable(remaining: tuple[int, ...]) -> bool:
+            count = sum(remaining)
+            if count == 0:
+                return True
+            last = Player.blue if count % 2 else Player.red
+            for column, height in enumerate(remaining):
+                if height and columns[column][height - 1] == last:
+                    before = remaining[:column] + (height - 1,) + remaining[column + 1 :]
+                    if reachable(before):
+                        return True
+            return False
 
-    def get_next_players_turn(self) -> Player:
-        red_count = 0
-        blue_count = 0 
-
-        for row in self.board:
-            for cell in row:
-                if cell == Player.blue.value:
-                    blue_count += 1
-                elif cell == Player.red.value:
-                    red_count += 1
-
-        if blue_count == red_count:
-            return Player.blue
-
-        if blue_count == red_count + 1:
-            return Player.red
-
-        # raise inconsistency
-        raise ValueError('Move ordering is incorrect, blue needs to go first and then alternate until the game has been completed')
+        if status.winner is None:
+            if reachable(heights):
+                return
+        else:
+            for column, height in enumerate(heights):
+                if not height or columns[column][height - 1] != status.winner:
+                    continue
+                rows = self.to_rows()
+                rows[ROWS - height][column] = 0
+                before = Board.from_rows(rows)
+                if not before._winning_cells(status.winner) and reachable(
+                    heights[:column] + (height - 1,) + heights[column + 1 :]
+                ):
+                    return
+        raise InvalidBoard(
+            "This board cannot be reached by legal moves that stop when a player wins."
+        )
